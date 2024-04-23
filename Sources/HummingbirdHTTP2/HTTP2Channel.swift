@@ -74,9 +74,23 @@ public struct HTTP2UpgradeChannel: HTTPChannelHandler {
                     try HTTP1Channel.Value(wrappingChannelSynchronously: http1Channel)
                 }
         } http2ConnectionInitializer: { http2Channel -> EventLoopFuture<NIOAsyncChannel<HTTP2Frame, HTTP2Frame>> in
-            http2Channel.eventLoop.makeCompletedFuture {
-                try NIOAsyncChannel<HTTP2Frame, HTTP2Frame>(wrappingChannelSynchronously: http2Channel)
-            }
+            http2Channel
+                .pipeline
+                .addHandler(
+                    ServerConnectionManagementHandler(
+                        eventLoop: http2Channel.eventLoop,
+                        maxIdleTime: nil,
+                        maxAge: nil,
+                        maxGraceTime: nil,
+                        keepaliveTime: nil,
+                        keepaliveTimeout: nil,
+                        allowKeepaliveWithoutCalls: true,
+                        minPingIntervalWithoutCalls: .seconds(39)
+                    )
+                )
+                .flatMapThrowing {
+                    try NIOAsyncChannel<HTTP2Frame, HTTP2Frame>(wrappingChannelSynchronously: http2Channel)
+                }
         } http2StreamInitializer: { http2ChildChannel -> EventLoopFuture<HTTP1Channel.Value> in
             let childChannelHandlers: [ChannelHandler] =
                 self.additionalChannelHandlers() + [
