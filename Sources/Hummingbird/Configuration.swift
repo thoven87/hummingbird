@@ -34,7 +34,7 @@ public struct ApplicationConfiguration: Sendable {
     /// Allows socket to be bound to an address that is already in use.
     public var reuseAddress: Bool
     /// Maximum active connections
-    public let availableConnectionDelegate: AvailableConnectionsDelegate?
+    public let availableConnectionHandler: AvailableConnectionsHandlerFactory?
     #if canImport(Network)
     /// TLS options for NIO Transport services
     public var tlsOptions: TSTLSOptions
@@ -55,13 +55,13 @@ public struct ApplicationConfiguration: Sendable {
         serverName: String? = nil,
         backlog: Int = 256,
         reuseAddress: Bool = true,
-        availableConnectionDelegate: AvailableConnectionsDelegate? = nil
+        availableConnectionHandler: AvailableConnectionsHandlerFactory? = nil
     ) {
         self.address = address
         self.serverName = serverName
         self.backlog = backlog
         self.reuseAddress = reuseAddress
-        self.availableConnectionDelegate = availableConnectionDelegate
+        self.availableConnectionHandler = availableConnectionHandler
         #if canImport(Network)
         self.tlsOptions = .none
         #endif
@@ -79,14 +79,14 @@ public struct ApplicationConfiguration: Sendable {
         address: BindAddress = .hostname(),
         serverName: String? = nil,
         reuseAddress: Bool = true,
-        availableConnectionDelegate: AvailableConnectionsDelegate? = nil,
+        availableConnectionHandler: AvailableConnectionsHandlerFactory? = nil,
         tlsOptions: TSTLSOptions
     ) {
         self.address = address
         self.serverName = serverName
         self.backlog = 256 // not used by Network framework
         self.reuseAddress = reuseAddress
-        self.availableConnectionDelegate = availableConnectionDelegate
+        self.availableConnectionHandler = availableConnectionHandler
         self.tlsOptions = tlsOptions
     }
 
@@ -115,7 +115,7 @@ public struct ApplicationConfiguration: Sendable {
             serverName: self.serverName,
             backlog: self.backlog,
             reuseAddress: self.reuseAddress,
-            availableConnectionDelegate: self.availableConnectionDelegate,
+            availableConnectionHandler: self.availableConnectionHandler,
             tlsOptions: self.tlsOptions
         )
     }
@@ -126,7 +126,7 @@ public struct ApplicationConfiguration: Sendable {
             serverName: self.serverName,
             backlog: self.backlog,
             reuseAddress: self.reuseAddress,
-            availableConnectionDelegate: self.availableConnectionDelegate
+            availableConnectionHandler: self.availableConnectionHandler
         )
     }
     #endif

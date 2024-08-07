@@ -14,8 +14,24 @@
 
 import NIOCore
 
+public struct AvailableConnectionsHandlerFactory: Sendable {
+    var createDelegate: @Sendable () -> any AvailableConnectionsDelegate
+
+    public init(_ createDelegate: @escaping @Sendable () -> any AvailableConnectionsDelegate) {
+        self.createDelegate = createDelegate
+    }
+}
+
+extension AvailableConnectionsHandlerFactory {
+    static func maximumAvailableConnections(_ maxConnections: Int) -> Self {
+        return .init {
+            MaximumAvailableConnections(maxConnections)
+        }
+    }
+}
+
 /// Delegate for `AvailableConnectionsChannelHandler` that defines if we should accept
-public protocol AvailableConnectionsDelegate: Sendable {
+public protocol AvailableConnectionsDelegate {
     /// Called when a connection is opened
     mutating func connectionOpened()
     /// Called when a connection is closed
@@ -26,31 +42,31 @@ public protocol AvailableConnectionsDelegate: Sendable {
 
 extension AvailableConnectionsDelegate {
     /// Create ChannelHandler from Delegate
-    var availableConnectionsChannelHandler: any ChannelDuplexHandler {
+    public var availableConnectionsChannelHandler: any ChannelDuplexHandler {
         AvailableConnectionsChannelHandler(delegate: self)
     }
 }
 
 /// Implementation of ``AvailableConnectionsDelegate`` that sets a maximum limit to the number
 /// of open connections
-public struct MaximumAvailableConnections: AvailableConnectionsDelegate {
+struct MaximumAvailableConnections: AvailableConnectionsDelegate {
     let maxConnections: Int
     var connectionCount: Int
 
-    public init(_ maxConnections: Int) {
+    init(_ maxConnections: Int) {
         self.maxConnections = maxConnections
         self.connectionCount = 0
     }
 
-    public mutating func connectionOpened() {
+    mutating func connectionOpened() {
         self.connectionCount += 1
     }
 
-    public mutating func connectionClosed() {
+    mutating func connectionClosed() {
         self.connectionCount -= 1
     }
 
-    public func isAcceptingNewConnections() -> Bool {
+    func isAcceptingNewConnections() -> Bool {
         self.connectionCount < self.maxConnections
     }
 }
@@ -58,7 +74,7 @@ public struct MaximumAvailableConnections: AvailableConnectionsDelegate {
 /// Channel Handler that controls whether we should accept new connections
 ///
 /// Handler is initialized with a delegate object that makes the decision on whether to accept a new connection
-public final class AvailableConnectionsChannelHandler<Delegate: AvailableConnectionsDelegate>: ChannelDuplexHandler {
+final class AvailableConnectionsChannelHandler<Delegate: AvailableConnectionsDelegate>: ChannelDuplexHandler {
     public typealias InboundIn = Channel
     public typealias InboundOut = Channel
     public typealias OutboundIn = Never
